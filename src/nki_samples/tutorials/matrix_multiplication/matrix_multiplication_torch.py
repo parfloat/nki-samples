@@ -5,10 +5,14 @@ PyTorch implementation for matrix multiplication NKI tutorial.
 
 """
 
+import os
 import torch
 from torch_xla.core import xla_model as xm
+import neuronxcc.nki as nki
 
 from matrix_multiplication_nki_kernels import nki_matmul_basic_, nki_matmul_tiled_, nki_matmul_hoist_load_, nki_matmul_block_free_dimension_, nki_matmul_fully_optimized_
+
+WORKING_DIRECTORY = f"/home/ubuntu/matmul/"
 
 if __name__ == "__main__":
 
@@ -42,8 +46,17 @@ if __name__ == "__main__":
   # Run torch reference
   output_torch = torch.matmul(lhs, rhs).to(device=cpu)
 
-  def check_match(nki_func):
-    output = nki_func(lhs.T, rhs)
+  def check_match(nki_func, mode="profile"):
+    if mode == "profile":
+      print(f"Profiling {nki_func.__name__}")
+      profile_func = nki.profile(
+          working_directory=os.path.join(WORKING_DIRECTORY, f"{nki_func.__name__}-profiles"),
+          save_neff_name='file.neff',
+          save_trace_name='profile.ntff',
+          profile_nth=2)(nki_func)
+      output = profile_func(lhs.T, rhs)
+    else:
+      output = nki_func(lhs.T, rhs)
     output_nki = output.to(device=cpu)
     if torch.allclose(output_torch, output_nki, atol=1e-4, rtol=1e-2):
       print("NKI and Torch match")
