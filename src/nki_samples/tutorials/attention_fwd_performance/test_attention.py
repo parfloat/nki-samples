@@ -96,4 +96,4 @@ def test_attn_tutorial(mode, version):
         attn_out = version(q, k, v)
         assert np.allclose(attn_out, numpy_output, atol=1e-2)
 
-test_attn_tutorial("accuracy", attn_fwd_v1)
+test_attn_tutorial("profile", attn_fwd_v1)
